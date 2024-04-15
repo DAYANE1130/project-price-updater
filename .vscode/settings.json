@@ -2,6 +2,7 @@
   "conventionalCommits.scopes": [
     "Products",
     "Packs",
-    "Database"
+    "Database",
+    "Package json"
   ]
 }
