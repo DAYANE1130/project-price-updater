@@ -5,6 +5,7 @@ import { MultipartFile } from '@adonisjs/core/bodyparser'
 import * as fs from 'node:fs'
 import * as csv from 'fast-csv'
 import CSVValidationService from '#services/csv_validation_service'
+import Product from '#models/product'
 
 export default class UploadsController {
   // private csvValidationService = new CSVValidationService()
@@ -95,26 +96,21 @@ export default class UploadsController {
     })
     const arrayOfReadCsv = await this.processCsv(arquivo)
     await CSVValidationService.validateProductFields(arrayOfReadCsv)
-    await CSVValidationService.validate(arrayOfReadCsv)
-    return arrayOfReadCsv
+    const resultValidation = await CSVValidationService.validate(arrayOfReadCsv)
+    // await CSVValidationService.validatePriceAboveCost(arrayOfReadCsv)
+    return resultValidation
+    // try {
+    // } catch (error) {
+    //   console.log(error.message)
+    // }
   }
-  /**
-   * Show individual record
-   */
-  // async show({ params }: HttpContext) {}
-
-  // /**
-  //  * Edit individual record
-  //  */
-  // async edit({ params }: HttpContext) {}
-
-  // /**
-  //  * Handle form submission for the edit action
-  //  */
-  // async update({ params, request }: HttpContext) {}
-
-  // /**
-  //  * Delete record
-  //  */
-  // async destroy({ params }: HttpContext) {}
+  // REVER SOBRE COMO FAZER ESSA ATUALIZAÇÃO POIS AS VALIDAÇÕES FORAM FEITAS NA STORE
+  // TEM QUE FAZER AQUI NOVAMENTE?
+  // async update({ params, request }: HttpContext) {
+  //   const { product_code, name, sales_price, new_price } = request.all()
+  //   // await updateProductValidator.validate(request.all())
+  //   const product = await Product.findOrFail(product_code)
+  //   const updatedProduct = await product.merge(request.all()).save()
+  //   return updatedProduct
+  // }
 }
