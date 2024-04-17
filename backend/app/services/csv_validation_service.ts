@@ -8,17 +8,40 @@ export default class CSVValidationService {
     row.map((product: Product) => updateProductValidator.validate(product))
   }
 
+  // static async validate(row: any) {
+  //   // corrigir tipo any
+  //   //const product = await Product.findByOrFail('code', row.product_code)
+  //   const productCodes = row.map((item: any) => item.product_code)
+  //   const products = await Product.query().whereIn('code', productCodes)
+  //   const errors = []
+  //   errors.push(this.validatePriceAboveCost(row))
+  //   errors.push(this.validatePriceChangeWithinLimit(products, row))
+  //   errors.push(this.validatePackagePrice(row))
+  //   const err: any = await Promise.all(errors.map(async (error) => error))
+
+  //   // console.log(err)
+  //   // const response = FormatResponseValidationProduct.simplifiedResults(product, row.new_price)
+  //   return products
+  // }
+
   static async validate(row: any) {
-    // corrigir tipo any
-    //const product = await Product.findByOrFail('code', row.product_code)
     const productCodes = row.map((item: any) => item.product_code)
     const products = await Product.query().whereIn('code', productCodes)
     const errors = []
+
     errors.push(this.validatePriceAboveCost(row))
     errors.push(this.validatePriceChangeWithinLimit(products, row))
-    this.validatePackagePrice(row)
-    // const response = FormatResponseValidationProduct.simplifiedResults(product, row.new_price)
-    return products
+    errors.push(this.validatePackagePrice(row))
+
+    const validationResults = await Promise.all(errors)
+
+    const errorMessages = validationResults.flat().filter((error) => error !== null)
+
+    if (errorMessages.length > 0) {
+      return errorMessages
+    } else {
+      return products
+    }
   }
 
   static async validatePriceAboveCost(row: any) {
@@ -34,8 +57,8 @@ export default class CSVValidationService {
     // }
     const verifyPriceIsAbove = await Promise.all(
       row.map(async (item: any) => {
-        const findProduct = await Product.findBy('code', item.product_code)
-        if (item.new_price < findProduct?.$attributes.cost_price) {
+        const findProduct = await Product.findByOrFail('code', item.product_code)
+        if (item.new_price < Number(findProduct.$attributes.cost_price)) {
           return {
             code: item.product_code,
             message: 'O novo preço é menor que o preço de custo',
@@ -65,12 +88,15 @@ export default class CSVValidationService {
   }
 
   static async validatePriceChangeWithinLimit(product: any, row: any) {
+    // console.log(product)
     // add um filter para limpar os undefineds e enviar somnte os erros para o front
     const verifyPriceChangeWithinLimit = await Promise.all(
       row.map(async (item: any, index: number) => {
-        const tenPercent = product.$attributes.sales_price[index] * 0.1
-        const productMoreTenPerCent = product.$attributes.sales_price[index] + tenPercent
-        const productLessTenPerCent = product.$attributes.sales_price[index] - tenPercent
+        const tenPercent = (Number(product[index].$attributes.sales_price) * 0.1).toFixed(2)
+        const productMoreTenPerCent =
+          Number(product[index].$attributes.sales_price) + Number(tenPercent)
+        const productLessTenPerCent =
+          Number(product[index].$attributes.sales_price) - Number(tenPercent)
 
         if (item.newPrice > productMoreTenPerCent) {
           return {
@@ -119,9 +145,10 @@ export default class CSVValidationService {
         }
       }
       const sumPriceComponents = priceComponentProduct * quantity
+      console.log(sumPriceComponents, pricePack) // 0 60
       if (sumPriceComponents !== pricePack) {
         errorPackPrice.push({
-          code: row.product_code,
+          code: product.product_code,
           message: 'A soma dos produtos é diferente do preço do pacote',
         })
       }
