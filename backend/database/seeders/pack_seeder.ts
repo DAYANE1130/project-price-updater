@@ -3,7 +3,8 @@ import Pack from '#models/pack'
 
 export default class extends BaseSeeder {
   async run() {
-    await Pack.createMany([
+    const uniqueKey = 'pack_id'
+    await Pack.updateOrCreateMany(uniqueKey, [
       { pack_id: 1000, product_id: 18, qty: 6 },
       { pack_id: 1010, product_id: 24, qty: 1 },
       { pack_id: 1010, product_id: 26, qty: 1 },
