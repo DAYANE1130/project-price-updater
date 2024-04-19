@@ -5,7 +5,8 @@ import { MultipartFile } from '@adonisjs/core/bodyparser'
 import * as fs from 'node:fs'
 import * as csv from 'fast-csv'
 import CSVValidationService from '#services/csv_validation_service'
-import Product from '#models/product'
+import { ProductSendByUser } from '../Interfaces/product_types.js'
+// import Product from '#models/product'
 
 export default class UploadsController {
   // private csvValidationService = new CSVValidationService()
@@ -51,7 +52,7 @@ export default class UploadsController {
 
   async processCsv(file: MultipartFile | null) {
     return new Promise((resolve, reject) => {
-      const validationPromises: any = []
+      const validationPromises: ProductSendByUser[] = []
       //@ts-ignore
       fs.createReadStream('./uploads/' + file.fileName)
         .pipe(csv.parse({ headers: true }))
@@ -79,30 +80,28 @@ export default class UploadsController {
   }
 
   async store({ request, response }: HttpContext) {
-    const arquivo: MultipartFile | null = request.file('meuArquivo', {
+    const file: MultipartFile | null = request.file('file', {
       size: '2mb',
       extnames: ['csv'],
     })
     //@ts-ignore
-    if (!arquivo.isValid) {
+    if (!file.isValid) {
       return response.badRequest({
         //@ts-ignore
-        errors: arquivo.errors,
+        errors: file.errors,
       })
     } //@ts-ignore
-    await arquivo.move(app.makePath('uploads'), {
+    await file.move(app.makePath('uploads'), {
       //@ts-ignore
-      name: `${cuid()}.${arquivo.extname}`,
+      name: `${cuid()}.${file.extname}`,
     })
-    const arrayOfReadCsv = await this.processCsv(arquivo)
-    await CSVValidationService.validateProductFields(arrayOfReadCsv)
-    const resultValidation = await CSVValidationService.validate(arrayOfReadCsv)
-    // await CSVValidationService.validatePriceAboveCost(arrayOfReadCsv)
+    const dataProduct: ProductSendByUser[] | Error = <ProductSendByUser[]>(
+      await this.processCsv(file)
+    )
+    await CSVValidationService.validateProductFields(dataProduct)
+    const resultValidation = await CSVValidationService.validate(dataProduct)
+    //console.log(resultValidation)
     return resultValidation
-    // try {
-    // } catch (error) {
-    //   console.log(error.message)
-    // }
   }
   // REVER SOBRE COMO FAZER ESSA ATUALIZAÇÃO POIS AS VALIDAÇÕES FORAM FEITAS NA STORE
   // TEM QUE FAZER AQUI NOVAMENTE?
