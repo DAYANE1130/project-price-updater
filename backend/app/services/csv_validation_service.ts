@@ -1,138 +1,160 @@
 import Product from '#models/product'
 import Pack from '#models/pack'
-//import { FormatResponseValidationProduct } from '#utils/format_response_validation_product'
+import { FormatResponseValidationProduct } from '#utils/format_response_validation_product'
 import { updateProductValidator } from '#validators/product'
+import { ProductSendByUser } from '../Interfaces/product_types.js'
 
 export default class CSVValidationService {
-  static async validateProductFields(row: any) {
-    row.map((product: Product) => updateProductValidator.validate(product))
+  static async validateProductFields(data: any) {
+    data.map((product: Product) => updateProductValidator.validate(product))
   }
 
-  // static async validate(row: any) {
-  //   // corrigir tipo any
-  //   //const product = await Product.findByOrFail('code', row.product_code)
-  //   const productCodes = row.map((item: any) => item.product_code)
-  //   const products = await Product.query().whereIn('code', productCodes)
-  //   const errors = []
-  //   errors.push(this.validatePriceAboveCost(row))
-  //   errors.push(this.validatePriceChangeWithinLimit(products, row))
-  //   errors.push(this.validatePackagePrice(row))
-  //   const err: any = await Promise.all(errors.map(async (error) => error))
+  // static async validate(data: ProductSendByUser[]) {
+  //   const products: any = await this.verifyExistProduct(data)
+  //   const { existingProducts, productsNoExist } = products
+  //   if (!existingProducts.length) {
+  //     return productsNoExist
+  //   } else if (existingProducts.length > 0 && productsNoExist.length > 0) {
+  //     return { existingProducts, productsNoExist }
+  //   }
 
-  //   // console.log(err)
-  //   // const response = FormatResponseValidationProduct.simplifiedResults(product, row.new_price)
-  //   return products
+  //   const errors = []
+  //   errors.push(await this.validatePriceAboveCost(existingProducts, data))
+  //   errors.push(await this.validatePriceChangeWithinLimit(existingProducts, data))
+  //   // errors.push(this.validatePackagePrice(data))
+
+  //   // const validationResults = await Promise.all(errors)
+  //   // console.log("EUSOU ERRO E ABOVE", validationResults)
+
+  //   // const errorMessages = validationResults.flat().filter((error) => error !== null)
+  //   const [resultErrorsValidation] = errors
+  //   const ResponseFormatProducts = FormatResponseValidationProduct.simplifiedResults(
+  //     existingProducts,
+  //     data
+  //   )
+
+  //   if (resultErrorsValidation.length > 0) {
+  //     return errors
+  //   } else {
+  //     return ResponseFormatProducts
+  //   }
+  //   // return response
   // }
 
-  static async validate(row: any) {
-    const productCodes = row.map((item: any) => item.product_code)
-    const products = await Product.query().whereIn('code', productCodes)
-    const errors = []
+  static async coletarErros(existingProducts: any, data: ProductSendByUser[]) {
+    const erros = []
+    erros.push(await this.validatePriceAboveCost(existingProducts, data))
+    erros.push(await this.validatePriceChangeWithinLimit(existingProducts, data))
 
-    errors.push(this.validatePriceAboveCost(row))
-    errors.push(this.validatePriceChangeWithinLimit(products, row))
-    errors.push(this.validatePackagePrice(row))
+    return erros
+  }
 
-    const validationResults = await Promise.all(errors)
+  static async formatarResultadosValidacao(existingProducts: any, data: ProductSendByUser[]) {
+    const ResponseFormatProducts = FormatResponseValidationProduct.simplifiedResults(
+      existingProducts,
+      data
+    )
 
-    const errorMessages = validationResults.flat().filter((error) => error !== null)
+    return ResponseFormatProducts
+  }
 
-    if (errorMessages.length > 0) {
-      return errorMessages
+  static async validate(data: ProductSendByUser[]) {
+    const products: any = await this.verifyExistProduct(data)
+    const { existingProducts, productsNoExist } = products
+
+    if (!existingProducts.length) {
+      return productsNoExist
+    } else if (!productsNoExist.length) {
+      return existingProducts
+      //tive que add, pois quando recebi somente casos de sucesso retornava um array vazio para produtos que não existem
+    } else if (existingProducts.length > 0 && productsNoExist.length > 0) {
+      return { existingProducts, productsNoExist }
+    }
+
+    const erros = await this.coletarErros(existingProducts, data)
+    if (erros.length > 0) {
+      return erros
     } else {
-      return products
+      return this.formatarResultadosValidacao(existingProducts, data)
     }
   }
 
-  static async validatePriceAboveCost(row: any) {
-    // const arr: any = []
-    // let isPriceAboveCost = false
-
-    // for (const product of row) {
-    //   const findProduct = await Product.findBy('code', product.product_code)
-    //   if (product.new_price < findProduct?.$attributes.cost_price) {
-    //     arr.push([product.new_price, findProduct?.$attributes.cost_price]) // pushing an array to keep both values
-    //     isPriceAboveCost = true;
-    //   }
-    // }
-    const verifyPriceIsAbove = await Promise.all(
-      row.map(async (item: any) => {
-        const findProduct = await Product.findByOrFail('code', item.product_code)
-        if (item.new_price < Number(findProduct.$attributes.cost_price)) {
-          return {
-            code: item.product_code,
-            message: 'O novo preço é menor que o preço de custo',
-          }
-        }
-      })
+  static async verifyExistProduct(data: ProductSendByUser[]) {
+    const products = await Promise.all(
+      data.map(async (item: any) => await Product.findBy('code', item.product_code))
     )
-    return verifyPriceIsAbove
-    // console.log("eu sou abovecost", verifyPriceIsAbove)
-    // if (isPriceAboveCost) {
-    //   return 'O novo preço é menor que o preço de custo.'
-    // }
-    // for (const product of row) {
-    //   const findProduct = await Product.findBy('code', product.product_code)
-    //   if (product.new_price > findProduct?.$attributes.cost_price) {
-    //     arr.push(product.new_price)
-    //     return 'O novo preço é maior que o preço de custo.'
 
-    //   } else {
-    //     null
-    //   }
-    // }
-    // console.log("eu sou abovecost", arr)
-    // return newPrice > product.$attributes.cost_price
-    //   ? 'O novo preço é maior que o preço de custo.'
-    //   : null
+    const productsCodesSendByUser = data.map((item: any) => item.product_code)
+
+    const productsNoExist = productsCodesSendByUser
+      .filter((item, index) => item.product_code === products[index]?.code)
+      .map((productCodeNotOk) => ({
+        code: productCodeNotOk,
+        message: 'Produto não encontrado',
+      }))
+    const existingProducts = products.filter((product) => product !== null)
+    return { existingProducts, productsNoExist }
   }
 
-  static async validatePriceChangeWithinLimit(product: any, row: any) {
-    // console.log(product)
-    // add um filter para limpar os undefineds e enviar somnte os erros para o front
-    const verifyPriceChangeWithinLimit = await Promise.all(
-      row.map(async (item: any, index: number) => {
-        const tenPercent = (Number(product[index].$attributes.sales_price) * 0.1).toFixed(2)
-        const productMoreTenPerCent =
-          Number(product[index].$attributes.sales_price) + Number(tenPercent)
-        const productLessTenPerCent =
-          Number(product[index].$attributes.sales_price) - Number(tenPercent)
+  static async validatePriceAboveCost(products: any, data: ProductSendByUser[]) {
+    const verifyPriceAboveCost = await Promise.all(
+      products
+        .map((item: Product, index: number) => {
+          const ResponseErrorProduct = FormatResponseValidationProduct.simplifiedResultError(
+            item,
+            data,
+            index
+          )
+          if (data[index].new_price < Number(item.$attributes.cost_price)) {
+            return {
+              ...ResponseErrorProduct,
+              message: 'Novo preço está abaixo do preço de custo desse produto',
+            }
+          }
+        })
+        .filter(Boolean)
+    )
+    return verifyPriceAboveCost
+  }
 
-        if (item.newPrice > productMoreTenPerCent) {
+  static async validatePriceChangeWithinLimit(products: any, data: ProductSendByUser[]) {
+    const verifyPriceChangeWithinLimit = await Promise.all(
+      products.map(async (item: any, index: number) => {
+        const currentPrice = Number(Number.parseFloat(item.$attributes.sales_price))
+        const limit = currentPrice * 0.1
+        const productAboveTenPerCent = Number((currentPrice + limit).toFixed(2))
+        const productLessTenPerCent = Number((currentPrice - limit).toFixed(2))
+        const ResponseErrorProduct = FormatResponseValidationProduct.simplifiedResultError(
+          item,
+          data,
+          index
+        )
+
+        if (data[index].new_price > productAboveTenPerCent) {
           return {
-            code: item.product_code,
+            ...ResponseErrorProduct,
             message: 'O reajuste  é maior que 10% do preço atual do produto',
           }
-        } else if (item.newPrice < productLessTenPerCent) {
+        } else if (data[index].new_price < productLessTenPerCent) {
           return {
-            code: item.product_code,
+            ...ResponseErrorProduct,
             message: 'O reajuste  é menor que 10% do preço atual do produto',
           }
         }
       })
     )
-    return verifyPriceChangeWithinLimit
+    const result = verifyPriceChangeWithinLimit.filter(Boolean)
+    return result
   }
 
-  // static async validatePriceChangeWithinLimit(product : any , newPrice: any) {
-  //   const tenPercent = product.$attributes.sales_price * 0.1
-  //   const productMoreTenPerCent = product.$attributes.sales_price + tenPercent
-  //   const productLessTenPerCent = product.$attributes.sales_price - tenPercent
-
-  //   if (newPrice > productMoreTenPerCent) {
-  //     return 'O reajuste  é maior que 10% do preço atual do produto'
-  //   } else if (newPrice < productLessTenPerCent) {
-  //     return 'O reajuste  é menor que 10% do preço atual do produto'
-  //   }
-  // }
-
   // acho que só funciona se for enviado apenas um pacote e produto componente
-  static async validatePackagePrice(row: any) {
+  // separar a função em duas, quanta coisas ela faz
+  static async validatePackagePrice(data: ProductSendByUser[]) {
     let pricePack: number = 0
     let priceComponentProduct: number = 0
     let quantity: number = 0
     const errorPackPrice = []
-    for (const product of row) {
+    for (const product of data) {
       const findPack = await Pack.findBy('pack_id', product.product_code)
       if (findPack) {
         await Product.findBy('code', findPack.$attributes.product_id)
@@ -145,7 +167,7 @@ export default class CSVValidationService {
         }
       }
       const sumPriceComponents = priceComponentProduct * quantity
-      console.log(sumPriceComponents, pricePack) // 0 60
+      // console.log(sumPriceComponents, pricePack) // 0 60
       if (sumPriceComponents !== pricePack) {
         errorPackPrice.push({
           code: product.product_code,
@@ -162,14 +184,14 @@ export default class CSVValidationService {
   }
 }
 
-//   static async validatePackagePrice(row: any) {
+//   static async validatePackagePrice(data: any) {
 //     // entradas são 2 productsCode e 2 new_price
-//     console.log('eu sou atributes', row)
+//     console.log('eu sou atributes', data)
 //     let pricePack: number
 //     let priceComponentProduct: number
 //     let componentProduct: Product | null
 //     const find = await Promise.all(
-//       row.map(async (product: DataSendByCsv) => {
+//       data.map(async (product: DataSendByCsv) => {
 //         const findPack = await Pack.findBy('pack_id', product.product_code)
 //         if (findPack) {
 //           const findComponentProduct = await Product.findBy(
@@ -192,15 +214,15 @@ export default class CSVValidationService {
 //   }
 // }
 
-// static async validatePackagePrice(row: any) {
+// static async validatePackagePrice(data: any) {
 //   // entradas são 2 productsCode e 2 new_price
-//   console.log('eu sou atributes', row)
+//   console.log('eu sou atributes', data)
 //   let pricePack: number
 //   let priceComponentProduct: number
 //   let componentProduct: Product | null
 //   const find = await Promise.all(
 
-//     row.map(async (product: DataSendByCsv) => {
+//     data.map(async (product: DataSendByCsv) => {
 //       const findPack = await Pack.findBy('pack_id', product.product_code)
 //       const findComponent = await Product.findBy('code', findPack?.$attributes.product_id)
 //       if (findPack) {
