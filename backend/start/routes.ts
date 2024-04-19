@@ -17,5 +17,5 @@ router.get('/', async () => {
 })
 
 router.group(() => {
-  router.resource('upload', UploadsController).apiOnly()
+  router.resource('api/upload', UploadsController).apiOnly()
 })
