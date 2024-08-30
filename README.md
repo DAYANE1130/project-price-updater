@@ -8,7 +8,7 @@ Este projeto é uma ferramenta desenvolvida para permitir a atualização massiv
 
 A ferramenta foi desenvolvida em resposta à necessidade de atualizar os preços de produtos de forma massiva, considerando as regras estabelecidas pelos diferentes times da empresa. As regras incluem a imposição de limites de preço para evitar que os preços de venda fiquem abaixo dos custos e a restrição de reajustes maiores ou menores que 10% do preço atual do produto. Além disso, a ferramenta considera produtos vendidos em pacotes, exigindo que os preços dos componentes do pacote sejam ajustados de forma a manter o preço final do pacote consistente.
 
-## Teste Técnico
+## 
 
 O teste técnico envolve a construção de um sistema que atenda aos requisitos especificados, incluindo a criação de um back-end em Node.js com todas as regras definidas e um front-end em React.js para a interação do usuário. O sistema deve permitir o carregamento de arquivos CSV de precificação, realizar verificações de validação dos dados e atualizar os preços no banco de dados MySQL, considerando as regras de negócio.
 
