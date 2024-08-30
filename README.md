@@ -10,7 +10,7 @@ A ferramenta foi desenvolvida em resposta à necessidade de atualizar os preços
 
 ## 
 
-O teste técnico envolve a construção de um sistema que atenda aos requisitos especificados, incluindo a criação de um back-end em Node.js com todas as regras definidas e um front-end em React.js para a interação do usuário. O sistema deve permitir o carregamento de arquivos CSV de precificação, realizar verificações de validação dos dados e atualizar os preços no banco de dados MySQL, considerando as regras de negócio.
+O sistema envolve a construção de um sistema que atenda aos requisitos especificados, incluindo a criação de um back-end em Node.js com todas as regras definidas e um front-end em React.js para a interação do usuário. O sistema deve permitir o carregamento de arquivos CSV de precificação, realizar verificações de validação dos dados e atualizar os preços no banco de dados MySQL, considerando as regras de negócio.
 
 ## Requisitos
 
